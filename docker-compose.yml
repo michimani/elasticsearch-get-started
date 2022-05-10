@@ -1,0 +1,78 @@
+version: '3'
+services:
+  node01:
+    build: .
+    container_name: node01
+    environment:
+      - node.name=node01
+      - discovery.seed_hosts=node02
+      - cluster.initial_master_nodes=node01,node02,node03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: bind
+        source: "./data/esdata01"
+        target: "/usr/share/elasticsearch/data"
+    ports:
+      - 9200:9200
+    networks:
+      - esnet
+  node02:
+    build: .
+    container_name: node02
+    environment:
+      - node.name=node02
+      - discovery.seed_hosts=node01
+      - cluster.initial_master_nodes=node01,node02,node03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: bind
+        source: "./data/esdata02"
+        target: "/usr/share/elasticsearch/data"
+    networks:
+      - esnet
+  node03:
+    build: .
+    container_name: node03
+    environment:
+      - node.name=node03
+      - discovery.seed_hosts=node01
+      - cluster.initial_master_nodes=node01,node02,node03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: bind
+        source: "./data/esdata03"
+        target: "/usr/share/elasticsearch/data"
+    networks:
+      - esnet
+
+volumes:
+  esdata01:
+    driver: local
+  esdata02:
+    driver: local
+  esdata03:
+    driver: local
+
+networks:
+  esnet:
