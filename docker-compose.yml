@@ -1,12 +1,14 @@
 version: '3'
 services:
-  node01:
+  es01:
     build: .
-    container_name: node01
+    hostname: docker-es01
+    container_name: es01
     environment:
-      - node.name=node01
-      - discovery.seed_hosts=node02
-      - cluster.initial_master_nodes=node01,node02,node03
+      - node.name=es01
+      - network.host=0.0.0.0
+      - discovery.seed_hosts=es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -20,16 +22,24 @@ services:
         source: "./data/esdata01"
         target: "/usr/share/elasticsearch/data"
     ports:
-      - 9200:9200
+      - "9200:9200/tcp"
     networks:
-      - esnet
-  node02:
+      esnet:
+        ipv4_address: 172.30.10.1
+    extra_hosts:
+      - "docker-es02:172.30.10.2"
+      - "docker-es03:172.30.10.3"
+      - "docker-kibana:172.30.20.1"
+
+  es02:
     build: .
-    container_name: node02
+    hostname: docker-es02
+    container_name: es02
     environment:
-      - node.name=node02
-      - discovery.seed_hosts=node01
-      - cluster.initial_master_nodes=node01,node02,node03
+      - node.name=es02
+      - network.host=0.0.0.0
+      - discovery.seed_hosts=es01,es03
+      - cluster.initial_master_nodes=es01,es02,es03
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -43,14 +53,21 @@ services:
         source: "./data/esdata02"
         target: "/usr/share/elasticsearch/data"
     networks:
-      - esnet
-  node03:
+      esnet:
+        ipv4_address: 172.30.10.2
+    extra_hosts:
+      - "docker-es01:172.30.10.1"
+      - "docker-es03:172.30.10.3"
+      - "docker-kibana:172.30.20.1"
+  es03:
     build: .
-    container_name: node03
+    hostname: docker-es03
+    container_name: es03
     environment:
-      - node.name=node03
-      - discovery.seed_hosts=node01
-      - cluster.initial_master_nodes=node01,node02,node03
+      - node.name=es03
+      - network.host=0.0.0.0
+      - discovery.seed_hosts=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -64,7 +81,34 @@ services:
         source: "./data/esdata03"
         target: "/usr/share/elasticsearch/data"
     networks:
-      - esnet
+      esnet:
+        ipv4_address: 172.30.10.3
+    extra_hosts:
+      - "docker-es01:172.30.10.1"
+      - "docker-es02:172.30.10.2"
+      - "docker-kibana:172.30.20.1"
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.2.0
+    hostname: docker-kibana
+    container_name: kibana
+    environment:
+      - server.name=kibana
+      - elasticsearch.hosts=http://docker-es01:9200
+      - elasticsearch.requesttimeout=60000
+    ports:
+        - "5601:5601/tcp"
+    mem_limit: 1g
+    networks:
+      esnet:
+        ipv4_address: 172.30.20.1
+    extra_hosts:
+      - "docker-es01:172.30.10.1"
+      - "docker-es02:172.30.10.2"
+      - "docker-es03:172.30.10.3"
+    depends_on:
+        - es01
+        - es02
+        - es03
 
 volumes:
   esdata01:
@@ -76,3 +120,4 @@ volumes:
 
 networks:
   esnet:
+    external: true
